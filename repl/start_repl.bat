@@ -1,0 +1,3 @@
+@echo off
+echo Iniciando REPL de Redes Neuronales...
+python repl\repl.py
