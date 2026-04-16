@@ -2,6 +2,8 @@
 
 Esta es una referencia detallada de todos los métodos y parámetros de la API de redes neuronales.
 
+**Nota:** La API de este proyecto está inspirada en el estilo de MATLAB para facilitar su uso a usuarios familiarizados con ese entorno, pero esta guía se enfoca en la implementación Python sin hacer comparaciones directas.
+
 ## Tabla de Contenidos
 
 1. [NeuralNetwork](#neuralnetwork)
@@ -376,15 +378,15 @@ net_bp = NeuralNetwork(model_type=ModelType.BACKPROP, hidden_layers=[10])
 
 ## Funciones de Activación Disponibles
 
-### Para Backpropagation (estilo MATLAB)
+### Para Backpropagation
 
-| Nombre Estándar | Nombre MATLAB | Descripción |
-|-----------------|---------------|-------------|
-| `'sigmoid'` | `'logsig'` | Sigmoide: 1 / (1 + exp(-z)) |
-| `'tanh'` | `'tansig'` | Tangente hiperbólica: tanh(z) |
-| `'relu'` | - | Rectified Linear Unit: max(0, z) |
-| `'linear'` | `'purelin'` | Lineal: z |
-| `'leaky_relu'` | - | Leaky ReLU: max(0.01*z, z) |
+| Nombre | Descripción |
+|--------|-------------|
+| `'sigmoid'` | Sigmoide: 1 / (1 + exp(-z)) |
+| `'tanh'` | Tangente hiperbólica: tanh(z) |
+| `'relu'` | Rectified Linear Unit: max(0, z) |
+| `'linear'` | Lineal: z |
+| `'leaky_relu'` | Leaky ReLU: max(0.01*z, z) |
 
 ### Para RBF
 
@@ -414,7 +416,7 @@ predictions = net.predict(X)
 metrics = net.evaluate(X, y)
 ```
 
-### Backpropagation con Funciones por Capa (Estilo MATLAB)
+### Backpropagation con Funciones por Capa
 
 ```python
 from api import NeuralNetwork, ModelType, NeuralNetworkConfig
@@ -464,5 +466,4 @@ layer_info = net.get_layer_info()
 
 1. **Formas de Arrays**: `X` debe ser 2D de forma `(n_samples, n_features)`, `y` puede ser 1D o 2D
 2. **Entrenamiento Previo**: Los métodos `predict()`, `evaluate()`, `get_weights()`, `get_layer_weights()`, `get_layer_info()` requieren que el modelo haya sido entrenado primero con `train()`
-3. **Funciones de Activación**: Los nombres estilo MATLAB (`logsig`, `tansig`, `purelin`) son equivalentes a los nombres estándar (`sigmoid`, `tanh`, `linear`)
-4. **Índices de Capa**: Se pueden usar índices negativos para acceder a capas desde el final (`-1` para última capa)
+3. **Índices de Capa**: Se pueden usar índices negativos para acceder a capas desde el final (`-1` para última capa)

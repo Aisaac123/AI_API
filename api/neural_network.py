@@ -3,12 +3,16 @@ API compacta de redes neuronales.
 Proporciona una interfaz simple y unificada para entrenar y simular redes neuronales.
 """
 
+import pickle
 import numpy as np
 from typing import List, Dict, Any, Optional
-from .model_type import ModelType
+from .core.model_type import ModelType
 from .config import NeuralNetworkConfig
 from .validators import InputValidator
 from .factories import ModelFactory, TrainerFactory
+from .factories_v2 import RBFModelFactory, BackpropModelFactory
+from .core.registry import ModelRegistry
+from .core.results import TrainingResult, EvaluationResult, LayerWeights, ModelSummary
 from src.evaluation import Evaluator
 
 
@@ -106,24 +110,24 @@ class NeuralNetwork:
         X: np.ndarray,
         y: np.ndarray,
         verbose: bool = False
-    ) -> Dict[str, Any]:
+    ) -> TrainingResult:
         """
         Entrenar la red neuronal.
-        
+
         Args:
             X: Matriz de entrada de forma (n_samples, n_features)
             y: Matriz de salida objetivo de forma (n_samples, n_outputs)
             verbose: Si imprimir progreso de entrenamiento
-            
+
         Returns:
-            Diccionario con resultados de entrenamiento y registros
+            TrainingResult con resultados de entrenamiento y registros
         """
         # Validar entrada
         X, y = InputValidator.validate_input_pair(X, y)
-        
+
         # Configurar modelo según tipo
         self._setup_model(X, y)
-        
+
         # Limpiar registros anteriores
         self.training_log = {
             'error_history': [],
@@ -131,32 +135,32 @@ class NeuralNetwork:
             'epoch_times': [],
             'performance_metrics': []
         }
-        
+
         # Entrenar y rastrear métricas
         import time
         start_time = time.time()
-        
+
         result = self.trainer.train(self.model, X, y)
-        
+
         training_time = time.time() - start_time
-        
+
         # Registrar resultados de entrenamiento
         self.training_log['error_history'] = result.error_history
         self.training_log['training_time'] = training_time
-        
+
         if verbose:
             print(f"Entrenamiento completado en {training_time:.4f} segundos")
             print(f"Error final: {result.final_error:.6f}")
             print(f"Épocas: {result.epochs}")
-        
-        return {
-            'training_time': training_time,
-            'final_error': result.final_error,
-            'epochs': result.epochs,
-            'error_history': result.error_history,
-            'converged': result.converged,
-            'metadata': result.metadata
-        }
+
+        return TrainingResult(
+            training_time=training_time,
+            final_error=result.final_error,
+            epochs=result.epochs,
+            error_history=result.error_history,
+            converged=result.converged,
+            metadata=result.metadata
+        )
     
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -178,36 +182,32 @@ class NeuralNetwork:
         X: np.ndarray,
         y: np.ndarray,
         detailed: bool = False
-    ) -> Dict[str, Any]:
+    ) -> EvaluationResult:
         """
         Evaluar el modelo en datos de prueba.
-        
+
         Args:
             X: Matriz de entrada de prueba
             y: Valores objetivo de prueba
             detailed: Si devolver métricas detalladas
-            
+
         Returns:
-            Diccionario con métricas de evaluación
+            EvaluationResult con métricas de evaluación
         """
         self._ensure_fitted()
         X, y = InputValidator.validate_input_pair(X, y)
-        
+
         report = self.evaluator.evaluate(self.model, X, y)
-        
-        result = {
-            'mse': report.mse,
-            'mae': report.mae,
-            'rmse': report.rmse,
-            'r2': report.r2,
-            'accuracy': report.accuracy
-        }
-        
-        if detailed:
-            result['predictions'] = report.predictions
-            result['metadata'] = report.metadata
-        
-        return result
+
+        return EvaluationResult(
+            mse=report.mse,
+            mae=report.mae,
+            rmse=report.rmse,
+            r2=report.r2,
+            accuracy=report.accuracy,
+            predictions=report.predictions if detailed else None,
+            metadata=report.metadata if detailed else {}
+        )
     
     def get_weights(self) -> Dict[str, Any]:
         """
@@ -233,51 +233,51 @@ class NeuralNetwork:
                 }
             return weights
     
-    def get_layer_weights(self, layer_index: int) -> Dict[str, Any]:
+    def get_layer_weights(self, layer_index: int) -> LayerWeights:
         """
         Obtener pesos y bias de una capa específica (solo para backpropagation).
-        
+
         Args:
             layer_index: Índice de la capa (0 para primera capa oculta, -1 para capa de salida)
-            
+
         Returns:
-            Diccionario con pesos, bias, y función de activación de la capa
-            
+            LayerWeights con pesos, bias, y función de activación de la capa
+
         Raises:
             RuntimeError: Si el modelo no está entrenado
             IndexError: Si el índice de capa es inválido
             ValueError: Si el modelo es RBF (no tiene capas múltiples)
         """
         self._ensure_fitted()
-        
+
         if self.model_type == ModelType.RBF:
             raise ValueError("get_layer_weights no está disponible para modelos RBF. Usa get_weights() en su lugar.")
-        
+
         if not self.model.layers:
             raise RuntimeError("El modelo no tiene capas configuradas.")
-        
+
         # Manejar índices negativos (como -1 para última capa)
         if layer_index < 0:
             layer_index = len(self.model.layers) + layer_index
-        
+
         if layer_index < 0 or layer_index >= len(self.model.layers):
             raise IndexError(
                 f"Índice de capa inválido: {layer_index}. "
                 f"El modelo tiene {len(self.model.layers)} capas (índices 0-{len(self.model.layers)-1})"
             )
-        
+
         layer = self.model.layers[layer_index]
-        
-        return {
-            'layer_index': layer_index,
-            'layer_type': 'hidden' if layer_index < len(self.model.layers) - 1 else 'output',
-            'input_size': layer.input_size,
-            'output_size': layer.output_size,
-            'weights': layer.weights.copy(),
-            'bias': layer.bias.copy() if layer.bias is not None else None,
-            'activation': str(layer.activation),
-            'use_bias': layer.use_bias
-        }
+
+        return LayerWeights(
+            layer_index=layer_index,
+            layer_type='hidden' if layer_index < len(self.model.layers) - 1 else 'output',
+            input_size=layer.input_size,
+            output_size=layer.output_size,
+            weights=layer.weights.copy(),
+            bias=layer.bias.copy() if layer.bias is not None else None,
+            activation=str(layer.activation),
+            use_bias=layer.use_bias
+        )
     
     def get_layer_info(self) -> List[Dict[str, Any]]:
         """
@@ -314,23 +314,86 @@ class NeuralNetwork:
         
         return layer_info
     
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> ModelSummary:
         """
         Obtener un resumen del modelo.
-        
+
         Returns:
-            Diccionario con información del modelo
+            ModelSummary con información del modelo
         """
         if self.model is None:
-            return {
-                'model_type': self.model_type.value,
-                'is_fitted': False,
-                'configuration': self._get_config()
-            }
+            return ModelSummary(
+                model_type=self.model_type.value,
+                is_fitted=False,
+                configuration=self._get_config()
+            )
+
+        model_summary = self.model.summary()
+        return ModelSummary(
+            model_type=self.model_type.value,
+            is_fitted=True,
+            configuration=self._get_config(),
+            architecture=model_summary.get('architecture'),
+            n_parameters=model_summary.get('n_parameters')
+        )
+    
+    def save(self, filepath: str) -> None:
+        """
+        Guardar el modelo entrenado en disco.
+
+        Args:
+            filepath: Ruta donde guardar el modelo (ej: 'model.pkl')
+
+        Raises:
+            RuntimeError: Si el modelo no ha sido entrenado
+        """
+        self._ensure_fitted()
         
-        summary = self.model.summary()
-        summary['configuration'] = self._get_config()
-        return summary
+        with open(filepath, 'wb') as f:
+            pickle.dump({
+                'model_type': self.model_type,
+                'config': self.config,
+                'model': self.model,
+                'training_log': self.training_log
+            }, f)
+    
+    @classmethod
+    def load(cls, filepath: str) -> 'NeuralNetwork':
+        """
+        Cargar un modelo guardado desde disco.
+
+        Args:
+            filepath: Ruta del modelo guardado (ej: 'model.pkl')
+
+        Returns:
+            Instancia de NeuralNetwork con el modelo cargado
+        """
+        with open(filepath, 'rb') as f:
+            data = pickle.load(f)
+        
+        # Crear nueva instancia sin entrenar
+        instance = cls(
+            model_type=data['model_type'],
+            config=data['config']
+        )
+        
+        # Restaurar estado entrenado
+        instance.model = data['model']
+        instance.training_log = data['training_log']
+        
+        return instance
+    
+    @staticmethod
+    def set_seed(seed: int) -> None:
+        """
+        Establecer semilla aleatoria para reproducibilidad.
+
+        Controla numpy.random para asegurar resultados reproducibles.
+
+        Args:
+            seed: Semilla aleatoria
+        """
+        np.random.seed(seed)
     
     def _get_config(self) -> Dict[str, Any]:
         """Obtener la configuración actual como diccionario."""
@@ -341,16 +404,19 @@ class NeuralNetwork:
     def _setup_model(self, X: np.ndarray, y: np.ndarray) -> None:
         """
         Configurar modelo y entrenador según tipo.
-        
-        Usa el patrón Factory para crear modelos y entrenadores,
-        aplicando el principio de responsabilidad única.
+
+        Usa el sistema de registro dinámico para crear modelos y entrenadores.
+        Esto permite agregar nuevos modelos sin modificar este código.
         """
-        if self.model_type == ModelType.RBF:
-            self.model = ModelFactory.create_rbf_network(X, self.config)
-            self.trainer = TrainerFactory.create_rbf_trainer(self.config)
-        else:
-            self.model = ModelFactory.create_backprop_network(X, y, self.config)
-            self.trainer = TrainerFactory.create_backprop_trainer(self.config)
+        # Convertir ModelType enum a string
+        model_type_str = self.model_type.value
+        
+        # Obtener factory del registro
+        factory = ModelRegistry.get_factory(model_type_str)
+        
+        # Crear modelo y entrenador usando la factory
+        self.model = factory.create_network(X, y, self.config)
+        self.trainer = factory.create_trainer(self.config)
     
     def _ensure_fitted(self) -> None:
         """Verificar que el modelo ha sido entrenado."""

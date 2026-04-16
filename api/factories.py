@@ -14,7 +14,7 @@ from src.core.activation import (
     ThinPlateSplineActivation
 )
 from .config import NeuralNetworkConfig
-from .model_type import ModelType
+from .core.model_type import ModelType
 
 
 class ModelFactory:

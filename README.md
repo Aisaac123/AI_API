@@ -162,26 +162,9 @@ El proyecto incluye un REPL (Read-Eval-Print Loop) interactivo con todo el conte
 
 **Iniciar el REPL:**
 
-**Opción 1: Comando simple desde el directorio del proyecto**
+Desde el directorio del proyecto:
 ```bash
-py neural_repl.py
-```
-
-**Opción 2: Configurar comando global (recomendado)**
-
-Para usar el comando `neural-repl` desde cualquier lugar, ejecuta el siguiente script como administrador:
-```bash
-powershell -ExecutionPolicy Bypass -File setup_alias.ps1
-```
-
-Después de reiniciar PowerShell, podrás usar:
-```bash
-neural-repl
-```
-
-**Opción 3: Usar el script interno**
-```bash
-py repl\repl.py
+py neural.py
 ```
 
 **Características del REPL:**

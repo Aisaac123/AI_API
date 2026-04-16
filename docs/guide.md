@@ -2,6 +2,8 @@
 
 Esta guía proporciona una explicación detallada del flujo de la aplicación, los modelos matemáticos implementados, y cómo cada componente del código resuelve los problemas matemáticos.
 
+**Nota:** La API de este proyecto está inspirada en el estilo de MATLAB para facilitar su uso a usuarios familiarizados con ese entorno, pero esta guía se enfoca en la implementación Python sin hacer comparaciones directas.
+
 ## Tabla de Contenidos
 
 1. [Arquitectura del Proyecto](#arquitectura-del-proyecto)
@@ -33,7 +35,7 @@ El proyecto sigue una arquitectura modular con separación clara de responsabili
 2. **Interfaces Abstractas**: Clases base para extensibilidad
 3. **Patrón Strategy**: Funciones de activación intercambiables
 4. **Dataclasses**: Configuración y resultados estructurados
-5. **API Compacta**: Interfaz simple estilo MATLAB para uso fácil
+5. **API Compacta**: Interfaz simple para uso fácil
 
 ## Modelo Matemático RBF
 
@@ -1058,7 +1060,7 @@ class BackpropTrainer(BaseTrainer):
 
 ### 10. API Compacta (`api/neural_network.py`)
 
-**Problema Matemático**: Proveer interfaz unificada que abstrae la complejidad de ambos modelos. Esta API es como un panel de control simple - oculta toda la complejidad interna de las redes neuronales y te da una interfaz fácil de usar estilo MATLAB donde solo necesitas llamar a `train()`, `predict()`, y `evaluate()` sin preocuparte por los detalles matemáticos o de implementación.
+**Problema Matemático**: Proveer interfaz unificada que abstrae la complejidad de ambos modelos. Esta API es como un panel de control simple - oculta toda la complejidad interna de las redes neuronales y te da una interfaz fácil de usar donde solo necesitas llamar a `train()`, `predict()`, y `evaluate()` sin preocuparte por los detalles matemáticos o de implementación.
 
 **Flujo Completo de la API**:
 
@@ -1135,23 +1137,23 @@ class NeuralNetwork:
 
 ## Nuevas Características
 
-### Funciones de Activación Estilo MATLAB
+### Funciones de Activación
 
-El proyecto ahora soporta funciones de activación estilo MATLAB para redes de retropropagación, proporcionando compatibilidad con el estilo de MATLAB.
+El proyecto soporta múltiples funciones de activación para redes de retropropagación, permitiendo flexibilidad en la configuración del modelo.
 
 **Funciones Disponibles:**
 
-| Nombre Estándar | Nombre MATLAB | Fórmula |
-|-----------------|---------------|---------|
-| `'sigmoid'` | `'logsig'` | `phi(z) = 1 / (1 + exp(-z))` |
-| `'tanh'` | `'tansig'` | `phi(z) = tanh(z)` |
-| `'relu'` | - | `phi(z) = max(0, z)` |
-| `'linear'` | `'purelin'` | `phi(z) = z` |
-| `'leaky_relu'` | - | `phi(z) = max(0.01*z, z)` |
+| Nombre | Fórmula |
+|--------|---------|
+| `'sigmoid'` | `phi(z) = 1 / (1 + exp(-z))` |
+| `'tanh'` | `phi(z) = tanh(z)` |
+| `'relu'` | `phi(z) = max(0, z)` |
+| `'linear'` | `phi(z) = z` |
+| `'leaky_relu'` | `phi(z) = max(0.01*z, z)` |
 
 **Implementación en Código:**
 
-Las funciones de activación ahora tienen derivadas para backpropagation:
+Las funciones de activación tienen derivadas para backpropagation:
 
 ```python
 class SigmoidActivation(ActivationFunction):
@@ -1169,7 +1171,7 @@ class SigmoidActivation(ActivationFunction):
 
 ### Funciones de Activación por Capa
 
-Similar a MATLAB, ahora puedes especificar diferentes funciones de activación para cada capa de la red de retropropagación.
+Ahora puedes especificar diferentes funciones de activación para cada capa de la red de retropropagación.
 
 **Configuración:**
 
