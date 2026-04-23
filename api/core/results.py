@@ -121,3 +121,61 @@ class ModelSummary:
         if self.n_parameters is not None:
             result['n_parameters'] = self.n_parameters
         return result
+
+
+@dataclass
+class ConfusionMatrixResult:
+    """
+    Resultado de cálculo de matriz de confusión con métricas derivadas.
+    
+    Este dataclass encapsula la matriz de confusión y todas las métricas
+    derivadas como precision, recall, F1-score, etc.
+    """
+    matrix: np.ndarray
+    """Matriz de confusión con valores absolutos (n_classes, n_classes)"""
+    
+    matrix_normalized_row: np.ndarray
+    """Matriz normalizada por fila (recall por clase)"""
+    
+    matrix_normalized_col: np.ndarray
+    """Matriz normalizada por columna (precision por clase)"""
+    
+    precision: Dict[str, float]
+    """Precision por clase: TP / (TP + FP)"""
+    
+    recall: Dict[str, float]
+    """Recall por clase: TP / (TP + FN)"""
+    
+    f1_score: Dict[str, float]
+    """F1-score por clase: 2 * (precision * recall) / (precision + recall)"""
+    
+    support: Dict[str, int]
+    """Número de muestras reales por clase"""
+    
+    accuracy: float
+    """Accuracy global: (TP + TN) / total"""
+    
+    macro_avg: Dict[str, float]
+    """Promedio macro de precision, recall, f1"""
+    
+    weighted_avg: Dict[str, float]
+    """Promedio ponderado por support de precision, recall, f1"""
+    
+    n_classes: int
+    """Número de clases"""
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convertir a diccionario para compatibilidad con código existente."""
+        return {
+            'matrix': self.matrix,
+            'matrix_normalized_row': self.matrix_normalized_row,
+            'matrix_normalized_col': self.matrix_normalized_col,
+            'precision': self.precision,
+            'recall': self.recall,
+            'f1_score': self.f1_score,
+            'support': self.support,
+            'accuracy': self.accuracy,
+            'macro_avg': self.macro_avg,
+            'weighted_avg': self.weighted_avg,
+            'n_classes': self.n_classes
+        }

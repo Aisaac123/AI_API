@@ -5,14 +5,14 @@ Proporciona una interfaz simple y unificada para entrenar y simular redes neuron
 
 import pickle
 import numpy as np
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from .core.model_type import ModelType
 from .config import NeuralNetworkConfig
 from .validators import InputValidator
 from .factories import ModelFactory, TrainerFactory
 from .factories_v2 import RBFModelFactory, BackpropModelFactory
 from .core.registry import ModelRegistry
-from .core.results import TrainingResult, EvaluationResult, LayerWeights, ModelSummary
+from .core.results import TrainingResult, EvaluationResult, LayerWeights, ModelSummary, ConfusionMatrixResult
 from src.evaluation import Evaluator
 
 
@@ -208,6 +208,48 @@ class NeuralNetwork:
             predictions=report.predictions if detailed else None,
             metadata=report.metadata if detailed else {}
         )
+    
+    def confusion_matrix(
+        self,
+        y_true: np.ndarray,
+        y_pred: Optional[np.ndarray] = None,
+        X: Optional[np.ndarray] = None
+    ) -> Union[ConfusionMatrixResult, Dict[int, ConfusionMatrixResult]]:
+        """
+        Calcular matriz de confusión y métricas derivadas.
+        
+        Soporta múltiples salidas generando una matriz por columna.
+        
+        Args:
+            y_true: Valores verdaderos de forma (n_samples,) o (n_samples, n_outputs)
+            y_pred: Valores predichos opcionales de forma (n_samples,) o (n_samples, n_outputs)
+            X: Datos de entrada opcionales para generar predicciones si y_pred no se proporciona
+            
+        Returns:
+            Si y_true.shape[1] == 1: ConfusionMatrixResult único
+            Si y_true.shape[1] > 1: Dict[int, ConfusionMatrixResult] (una por columna)
+            
+        Raises:
+            ValueError: Si se proporcionan tanto y_pred como X, o ninguno
+            RuntimeError: Si el modelo no está entrenado y se requiere predicción
+        """
+        # Validar que no se proporcionen ambos y_pred y X
+        if y_pred is not None and X is not None:
+            raise ValueError("Proporciona solo y_pred o X, no ambos.")
+        
+        # Si no se proporciona y_pred, hacer predicciones
+        if y_pred is None:
+            if X is None:
+                raise ValueError("Debes proporcionar y_pred o X para calcular la matriz de confusión.")
+            self._ensure_fitted()
+            y_pred = self.predict(X)
+        
+        # Validar y convertir a arrays
+        y_true = np.asarray(y_true)
+        y_pred = np.asarray(y_pred)
+        
+        # Usar el evaluador para calcular la matriz de confusión
+        return self.evaluator.confusion_matrix(y_true, y_pred)
     
     def get_weights(self) -> Dict[str, Any]:
         """

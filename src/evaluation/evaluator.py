@@ -4,9 +4,11 @@ Esta clase proporciona una interfaz unificada para evaluar cualquier modelo que 
 """
 
 import numpy as np
+from typing import Union, Dict
 from src.core.interfaces import BaseModel
 from src.core.results import EvaluationReport
 from .metrics import mse, mae, rmse, r2_score, accuracy
+from .confusion_matrix import ConfusionMatrixCalculator, ConfusionMatrixResult
 
 
 class Evaluator:
@@ -19,7 +21,7 @@ class Evaluator:
     
     def __init__(self):
         """Inicializar el evaluador."""
-        pass
+        self.confusion_calculator = ConfusionMatrixCalculator()
     
     def evaluate(self, model: BaseModel, X: np.ndarray, y: np.ndarray) -> EvaluationReport:
         """
@@ -84,3 +86,47 @@ class Evaluator:
             'test': test_report,
             'overfitting_ratio': test_report.mse / train_report.mse if train_report.mse > 0 else float('inf')
         }
+    
+    def confusion_matrix(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray
+    ) -> Union[ConfusionMatrixResult, Dict[int, ConfusionMatrixResult]]:
+        """
+        Calcular matriz de confusión y métricas derivadas.
+        
+        Soporta múltiples salidas generando una matriz por columna.
+        
+        Args:
+            y_true: Valores verdaderos de forma (n_samples,) o (n_samples, n_outputs)
+            y_pred: Valores predichos de forma (n_samples,) o (n_samples, n_outputs)
+            
+        Returns:
+            Si y_true.shape[1] == 1: ConfusionMatrixResult único
+            Si y_true.shape[1] > 1: Dict[int, ConfusionMatrixResult] (una por columna)
+        """
+        y_true = np.asarray(y_true)
+        y_pred = np.asarray(y_pred)
+        
+        # Asegurar 2D
+        if y_true.ndim == 1:
+            y_true = y_true.reshape(-1, 1)
+        if y_pred.ndim == 1:
+            y_pred = y_pred.reshape(-1, 1)
+        
+        # Si es una sola columna, retornar un solo resultado
+        if y_true.shape[1] == 1:
+            return self.confusion_calculator.compute(
+                y_true[:, 0],
+                y_pred[:, 0]
+            )
+        
+        # Si hay múltiples columnas, generar una matriz por columna
+        results = {}
+        for i in range(y_true.shape[1]):
+            results[i] = self.confusion_calculator.compute(
+                y_true[:, i],
+                y_pred[:, i]
+            )
+        
+        return results

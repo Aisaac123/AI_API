@@ -10,6 +10,7 @@ Esta es una referencia detallada de todos los métodos y parámetros de la API d
 2. [NeuralNetworkConfig](#neuralnetworkconfig)
 3. [ModelType](#modeltype)
 4. [Dataclasses de Resultados](#dataclasses-de-resultados)
+5. [Métodos de Evaluación](#métodos-de-evaluación)
 
 ---
 
@@ -626,6 +627,93 @@ print(f"Entrenado: {summary.is_fitted}")
 if summary.is_fitted:
     print(f"Parámetros: {summary.n_parameters}")
     print(f"Arquitectura: {summary.architecture}")
+```
+
+---
+
+### confusion_matrix()
+
+Calcula la matriz de confusión y métricas derivadas para tareas de clasificación.
+
+```python
+confusion_matrix(
+    y_true: np.ndarray,
+    y_pred: Optional[np.ndarray] = None,
+    X: Optional[np.ndarray] = None
+) -> Union[ConfusionMatrixResult, Dict[int, ConfusionMatrixResult]]
+```
+
+**Parámetros:**
+
+| Parámetro | Tipo | Default | Descripción |
+|-----------|------|---------|-------------|
+| `y_true` | `np.ndarray` | **Requerido** | Valores verdaderos de forma `(n_samples,)` o `(n_samples, n_outputs)` |
+| `y_pred` | `Optional[np.ndarray]` | `None` | Valores predichos opcionales de forma `(n_samples,)` o `(n_samples, n_outputs)` |
+| `X` | `Optional[np.ndarray]` | `None` | Datos de entrada opcionales para generar predicciones si `y_pred` no se proporciona |
+
+**Retorna:**
+- Si `y_true.shape[1] == 1`: `ConfusionMatrixResult` único
+- Si `y_true.shape[1] > 1`: `Dict[int, ConfusionMatrixResult]` (una por columna)
+
+**Excepciones:**
+- `ValueError`: Si se proporcionan tanto `y_pred` como `X`, o ninguno
+- `RuntimeError`: Si el modelo no está entrenado y se requiere predicción
+
+**Nota:** El método incluye discretización automática de predicciones continuas a clases discretas para redes neuronales.
+
+**Ejemplo:**
+```python
+# Con predicciones automáticas
+result = net.confusion_matrix(y_test, X=X_test)
+print(f"Accuracy: {result.accuracy}")
+print(f"Matriz: {result.matrix}")
+
+# Con predicciones externas
+y_pred = net.predict(X_test)
+result = net.confusion_matrix(y_test, y_pred=y_pred)
+
+# Múltiples salidas
+results = net.confusion_matrix(y_test_multi, X=X_test)
+for output_idx, result in results.items():
+    print(f"Salida {output_idx}: Accuracy {result.accuracy}")
+```
+
+---
+
+### ConfusionMatrixResult
+
+Dataclass que encapsula el resultado de cálculo de matriz de confusión con métricas derivadas.
+
+**Campos:**
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `matrix` | `np.ndarray` | Matriz de confusión con valores absolutos `(n_classes, n_classes)` |
+| `matrix_normalized_row` | `np.ndarray` | Matriz normalizada por fila (recall por clase) |
+| `matrix_normalized_col` | `np.ndarray` | Matriz normalizada por columna (precision por clase) |
+| `precision` | `Dict[str, float]` | Precision por clase: `TP / (TP + FP)` |
+| `recall` | `Dict[str, float]` | Recall por clase: `TP / (TP + FN)` |
+| `f1_score` | `Dict[str, float]` | F1-score por clase: `2 * (precision * recall) / (precision + recall)` |
+| `support` | `Dict[str, int]` | Número de muestras reales por clase |
+| `accuracy` | `float` | Accuracy global: `(TP + TN) / total` |
+| `macro_avg` | `Dict[str, float]` | Promedio macro de precision, recall, f1 |
+| `weighted_avg` | `Dict[str, float]` | Promedio ponderado por support de precision, recall, f1 |
+| `n_classes` | `int` | Número de clases |
+
+**Métodos:**
+- `to_dict()`: Convierte a diccionario para compatibilidad con código existente
+
+**Ejemplo:**
+```python
+result = net.confusion_matrix(y_test, X=X_test)
+print(f"Matriz: {result.matrix}")
+print(f"Accuracy: {result.accuracy:.4f}")
+print(f"Precision por clase: {result.precision}")
+print(f"Recall por clase: {result.recall}")
+print(f"F1-score por clase: {result.f1_score}")
+print(f"Support: {result.support}")
+print(f"Macro avg: {result.macro_avg}")
+print(f"Weighted avg: {result.weighted_avg}")
 ```
 
 ---

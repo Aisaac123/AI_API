@@ -2306,6 +2306,178 @@ Se ha creado un archivo de referencia completa de la API en `api/reference.md` q
 - Tablas de referencia de funciones de activación
 - Notas importantes sobre uso
 
+## Matriz de Confusión
+
+### Concepto Fundamental
+
+La matriz de confusión es una herramienta fundamental para evaluar el rendimiento de modelos de clasificación. Es una tabla que muestra el desempeño del modelo comparando las predicciones con los valores reales.
+
+**Estructura de la Matriz:**
+```
+              Predicción
+              Clase 0  Clase 1
+Real Clase 0  [  TP      FP   ]
+Real Clase 1  [  FN      TN   ]
+```
+
+- **TP (True Positive)**: Predijo clase 1 correctamente
+- **TN (True Negative)**: Predijo clase 0 correctamente
+- **FP (False Positive)**: Predijo clase 1 pero era clase 0
+- **FN (False Negative)**: Predijo clase 0 pero era clase 1
+
+### Métricas Derivadas
+
+A partir de la matriz de confusión se calculan varias métricas importantes:
+
+**Precision (Precisión):**
+```
+Precision = TP / (TP + FP)
+```
+- De todos los que predije como clase 1, ¿cuántos eran realmente clase 1?
+- Rango: 0 a 1 (mayor es mejor)
+
+**Recall (Sensibilidad):**
+```
+Recall = TP / (TP + FN)
+```
+- De todos los que eran realmente clase 1, ¿cuántos predije correctamente?
+- Rango: 0 a 1 (mayor es mejor)
+
+**F1-Score:**
+```
+F1 = 2 * (Precision * Recall) / (Precision + Recall)
+```
+- Media armónica de precision y recall
+- Útil cuando hay desbalance de clases
+- Rango: 0 a 1 (mayor es mejor)
+
+**Accuracy (Exactitud):**
+```
+Accuracy = (TP + TN) / Total
+```
+- Proporción de predicciones correctas
+- Rango: 0 a 1 (mayor es mejor)
+
+### Implementación en Código
+
+La implementación de matriz de confusión se encuentra en `src/evaluation/confusion_matrix.py`:
+
+**Clase `ConfusionMatrixCalculator`:**
+```python
+class ConfusionMatrixCalculator:
+    def compute(self, y_true, y_pred, labels=None, discretize=True):
+        # Calcular matriz de confusión
+        matrix = self._compute_matrix(y_true, y_pred, labels)
+        
+        # Calcular matrices normalizadas
+        matrix_normalized_row = self._normalize_by_row(matrix)  # Recall
+        matrix_normalized_col = self._normalize_by_column(matrix)  # Precision
+        
+        # Calcular métricas por clase
+        precision, recall, f1, support = self._compute_class_metrics(matrix, labels)
+        
+        # Calcular métricas globales
+        accuracy = np.trace(matrix) / np.sum(matrix)
+        macro_avg = self._compute_macro_avg(precision, recall, f1)
+        weighted_avg = self._compute_weighted_avg(precision, recall, f1, support)
+        
+        return ConfusionMatrixResult(...)
+```
+
+**Discretización Automática:**
+Las redes neuronales devuelven valores continuos. La implementación incluye discretización automática:
+- **Binario**: Umbral 0.5 (≥0.5 → clase 1, <0.5 → clase 0)
+- **Multi-clase**: Asignación a la clase más cercana
+
+```python
+def _discretize_predictions(self, y_pred, y_true):
+    unique_classes = np.unique(y_true)
+    
+    if len(unique_classes) == 2:
+        # Clasificación binaria: usar umbral 0.5
+        threshold = 0.5
+        y_pred_discrete = np.where(y_pred >= threshold, unique_classes[1], unique_classes[0])
+    else:
+        # Multi-clase: asignar a la clase más cercana
+        y_pred_discrete = np.zeros_like(y_pred)
+        for pred in y_pred:
+            closest_class = unique_classes[np.argmin(np.abs(unique_classes - pred))]
+            y_pred_discrete[np.where(y_pred == pred)[0][0]] = closest_class
+    
+    return y_pred_discrete
+```
+
+### Uso en la API
+
+El método `confusion_matrix()` está disponible en la clase `NeuralNetwork`:
+
+```python
+from api.neural_network import NeuralNetwork
+from api.core.model_type import ModelType
+
+# Crear y entrenar red
+net = NeuralNetwork(model_type=ModelType.RBF, n_centers=20)
+net.train(X_train, y_train)
+
+# Calcular matriz de confusión
+result = net.confusion_matrix(y_test, X=X_test)  # Hace predicciones automáticamente
+
+# O con predicciones externas
+y_pred = net.predict(X_test)
+result = net.confusion_matrix(y_test, y_pred=y_pred)
+```
+
+**Resultado:**
+```python
+ConfusionMatrixResult(
+    matrix=np.array([[7, 0], [0, 13]]),  # Valores absolutos
+    matrix_normalized_row=np.array([[1.0, 0.0], [0.0, 1.0]]),  # Recall
+    matrix_normalized_col=np.array([[1.0, 0.0], [0.0, 1.0]]),  # Precision
+    precision={'0.0': 1.0, '1.0': 1.0},
+    recall={'0.0': 1.0, '1.0': 1.0},
+    f1_score={'0.0': 1.0, '1.0': 1.0},
+    support={'0.0': 7, '1.0': 13},
+    accuracy=1.0,
+    macro_avg={'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0},
+    weighted_avg={'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0},
+    n_classes=2
+)
+```
+
+### Soporte para Múltiples Salidas
+
+El sistema soporta múltiples salidas generando una matriz por columna:
+
+```python
+# Dataset con 2 salidas independientes
+y = np.array([[0, 1], [1, 0], [1, 1], [0, 0]])  # (n_samples, 2)
+
+# Retorna dict con una matriz por columna
+results = net.confusion_matrix(y, y_pred)
+# {0: ConfusionMatrixResult, 1: ConfusionMatrixResult}
+```
+
+- Si `y.shape[1] == 1`: Retorna un solo `ConfusionMatrixResult`
+- Si `y.shape[1] > 1`: Retorna `Dict[int, ConfusionMatrixResult]` (una por columna)
+
+### Integración con Evaluator
+
+El método también está disponible en `Evaluator`:
+
+```python
+from src.evaluation import Evaluator
+
+evaluator = Evaluator()
+result = evaluator.confusion_matrix(y_true, y_pred)
+```
+
+### Archivos de Implementación
+
+- `src/evaluation/confusion_matrix.py` - Lógica de cálculo de matriz y métricas
+- `src/evaluation/evaluator.py` - Método `confusion_matrix()` en `Evaluator`
+- `api/core/results.py` - Dataclass `ConfusionMatrixResult` para resultado tipado
+- `api/neural_network.py` - Método `confusion_matrix()` en API pública
+
 ## Comparación de Modelos
 
 | Aspecto | RBF | Retropropagación |
