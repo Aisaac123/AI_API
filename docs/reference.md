@@ -9,6 +9,7 @@ Esta es una referencia detallada de todos los métodos y parámetros de la API d
 1. [NeuralNetwork](#neuralnetwork)
 2. [NeuralNetworkConfig](#neuralnetworkconfig)
 3. [ModelType](#modeltype)
+4. [Dataclasses de Resultados](#dataclasses-de-resultados)
 
 ---
 
@@ -85,7 +86,7 @@ train(
     X: np.ndarray,
     y: np.ndarray,
     verbose: bool = False
-) -> Dict[str, Any]
+) -> TrainingResult
 ```
 
 **Parámetros:**
@@ -96,13 +97,15 @@ train(
 | `y` | `np.ndarray` | **Requerido** | Matriz de salida de forma `(n_samples, n_outputs)` |
 | `verbose` | `bool` | `False` | Si imprimir progreso de entrenamiento |
 
-**Retorna:** `Dict[str, Any]` con las siguientes claves:
+**Retorna:** `TrainingResult` (dataclass) con los siguientes campos:
 - `training_time`: `float` - Tiempo de entrenamiento en segundos
 - `final_error`: `float` - Error final de entrenamiento
 - `epochs`: `int` - Número de épocas ejecutadas
 - `error_history`: `List[float]` - Historial de errores por época
 - `converged`: `bool` - Si el modelo convergió
 - `metadata`: `Dict[str, Any]` - Metadatos adicionales
+
+**Nota:** `TrainingResult` es un dataclass que proporciona autocompletado en IDEs. Si necesitas compatibilidad con código existente que espera diccionarios, usa `result.to_dict()`.
 
 **Ejemplo:**
 ```python
@@ -115,8 +118,9 @@ y = np.random.randn(100, 1)
 net = NeuralNetwork(model_type=ModelType.RBF, n_centers=20)
 result = net.train(X, y, verbose=True)
 
-print(f"Tiempo de entrenamiento: {result['training_time']:.4f}s")
-print(f"Error final: {result['final_error']:.6f}")
+print(f"Tiempo de entrenamiento: {result.training_time:.4f}s")
+print(f"Error final: {result.final_error:.6f}")
+print(f"Épocas: {result.epochs}")
 ```
 
 ---
@@ -158,7 +162,7 @@ evaluate(
     X: np.ndarray,
     y: np.ndarray,
     detailed: bool = False
-) -> Dict[str, Any]
+) -> EvaluationResult
 ```
 
 **Parámetros:**
@@ -169,14 +173,16 @@ evaluate(
 | `y` | `np.ndarray` | **Requerido** | Valores objetivo de prueba |
 | `detailed` | `bool` | `False` | Si incluir predicciones y metadatos en el resultado |
 
-**Retorna:** `Dict[str, Any]` con las siguientes claves:
+**Retorna:** `EvaluationResult` (dataclass) con los siguientes campos:
 - `mse`: `float` - Error cuadrático medio
 - `mae`: `float` - Error absoluto medio
 - `rmse`: `float` - Raíz del error cuadrático medio
 - `r2`: `float` - Coeficiente R²
 - `accuracy`: `float` - Precisión (para clasificación)
-- `predictions`: `np.ndarray` (opcional) - Predicciones (si `detailed=True`)
-- `metadata`: `Dict[str, Any]` (opcional) - Metadatos adicionales (si `detailed=True`)
+- `predictions`: `Optional[np.ndarray]` - Predicciones (si `detailed=True`)
+- `metadata`: `Dict[str, Any]` - Metadatos adicionales
+
+**Nota:** `EvaluationResult` es un dataclass que proporciona autocompletado en IDEs. Si necesitas compatibilidad con código existente que espera diccionarios, usa `result.to_dict()`.
 
 **Ejemplo:**
 ```python
@@ -184,8 +190,9 @@ X_test = np.random.randn(20, 2)
 y_test = np.random.randn(20, 1)
 
 metrics = net.evaluate(X_test, y_test)
-print(f"MSE: {metrics['mse']:.6f}")
-print(f"R²: {metrics['r2']:.6f}")
+print(f"MSE: {metrics.mse:.6f}")
+print(f"R²: {metrics.r2:.6f}")
+print(f"MAE: {metrics.mae:.6f}")
 ```
 
 ---
@@ -215,7 +222,7 @@ print(f"Pesos: {weights}")
 Obtiene pesos y bias de una capa específica (solo para backpropagation).
 
 ```python
-get_layer_weights(layer_index: int) -> Dict[str, Any]
+get_layer_weights(layer_index: int) -> LayerWeights
 ```
 
 **Parámetros:**
@@ -224,13 +231,13 @@ get_layer_weights(layer_index: int) -> Dict[str, Any]
 |-----------|------|-------------|
 | `layer_index` | `int` | Índice de la capa (`0` para primera capa oculta, `-1` para capa de salida) |
 
-**Retorna:** `Dict[str, Any]` con:
+**Retorna:** `LayerWeights` (dataclass) con los siguientes campos:
 - `layer_index`: `int` - Índice de la capa
 - `layer_type`: `str` - Tipo de capa (`'hidden'` o `'output'`)
 - `input_size`: `int` - Tamaño de entrada
 - `output_size`: `int` - Tamaño de salida
 - `weights`: `np.ndarray` - Matriz de pesos (copia)
-- `bias`: `np.ndarray` - Vector de bias (copia)
+- `bias`: `Optional[np.ndarray]` - Vector de bias (copia)
 - `activation`: `str` - Función de activación
 - `use_bias`: `bool` - Si usa bias
 
@@ -239,15 +246,19 @@ get_layer_weights(layer_index: int) -> Dict[str, Any]
 - `IndexError`: Si el índice de capa es inválido
 - `ValueError`: Si el modelo es RBF
 
+**Nota:** `LayerWeights` es un dataclass que proporciona autocompletado en IDEs. Soporta índices negativos para acceder a capas desde el final (ej: `-1` para la última capa).
+
 **Ejemplo:**
 ```python
 # Obtener pesos de la primera capa oculta
 layer_0 = net.get_layer_weights(0)
-print(f"Pesos capa 0: {layer_0['weights'].shape}")
+print(f"Pesos capa 0: {layer_0.weights.shape}")
+print(f"Bias: {layer_0.bias}")
 
 # Obtener pesos de la capa de salida
 layer_output = net.get_layer_weights(-1)
-print(f"Pesos salida: {layer_output['weights'].shape}")
+print(f"Pesos salida: {layer_output.weights.shape}")
+print(f"Activación: {layer_output.activation}")
 ```
 
 ---
@@ -286,20 +297,25 @@ for layer in layer_info:
 Obtiene un resumen del modelo.
 
 ```python
-summary() -> Dict[str, Any]
+summary() -> ModelSummary
 ```
 
-**Retorna:** `Dict[str, Any]` con información del modelo:
+**Retorna:** `ModelSummary` (dataclass) con los siguientes campos:
 - `model_type`: `str` - Tipo de modelo
 - `is_fitted`: `bool` - Si el modelo está entrenado
-- `config`: `Dict[str, Any]` - Configuración del modelo
-- Información adicional específica del tipo de modelo
+- `configuration`: `Dict[str, Any]` - Configuración del modelo
+- `architecture`: `Optional[Dict[str, Any]]` - Arquitectura del modelo (si está entrenado)
+- `n_parameters`: `Optional[int]` - Número de parámetros (si está entrenado)
+
+**Nota:** `ModelSummary` es un dataclass que proporciona autocompletado en IDEs.
 
 **Ejemplo:**
 ```python
 summary = net.summary()
-print(f"Tipo: {summary['model_type']}")
-print(f"Entrenado: {summary['is_fitted']}")
+print(f"Tipo: {summary.model_type}")
+print(f"Entrenado: {summary.is_fitted}")
+if summary.is_fitted:
+    print(f"Parámetros: {summary.n_parameters}")
 ```
 
 ---
@@ -357,6 +373,94 @@ net = NeuralNetwork(model_type=ModelType.BACKPROP, config=config)
 
 ---
 
+### save()
+
+Guarda el modelo entrenado en disco.
+
+```python
+save(filepath: str) -> None
+```
+
+**Parámetros:**
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `filepath` | `str` | Ruta donde guardar el modelo (ej: `'models/rbf_model.pkl'`) |
+
+**Excepciones:**
+- `RuntimeError`: Si el modelo no ha sido entrenado
+
+**Estado guardado:**
+- `model_type`: Tipo de modelo
+- `config`: Configuración completa
+- `model`: Instancia del modelo con pesos entrenados
+- `training_log`: Historial de entrenamiento
+
+**Ejemplo:**
+```python
+net.train(X, y, verbose=True)
+net.save('models/my_model.pkl')
+```
+
+---
+
+### load()
+
+Carga un modelo guardado desde disco (método de clase).
+
+```python
+@classmethod
+load(filepath: str) -> NeuralNetwork
+```
+
+**Parámetros:**
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `filepath` | `str` | Ruta del modelo guardado (ej: `'models/rbf_model.pkl'`) |
+
+**Retorna:** Instancia de `NeuralNetwork` con el modelo cargado y listo para usar
+
+**Ejemplo:**
+```python
+net_loaded = NeuralNetwork.load('models/my_model.pkl')
+predictions = net_loaded.predict(X_test)  # Funciona inmediatamente
+```
+
+---
+
+### set_seed()
+
+Establece semilla aleatoria para reproducibilidad (método estático).
+
+```python
+@staticmethod
+set_seed(seed: int) -> None
+```
+
+**Parámetros:**
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `seed` | `int` | Semilla aleatoria |
+
+**Operaciones afectadas:**
+- Inicialización de pesos
+- Mezcla de datos en cada época (backprop)
+- Inicialización de centros RBF
+- K-means (inicialización)
+
+**Ejemplo:**
+```python
+# Para reproducibilidad
+NeuralNetwork.set_seed(42)
+
+net = NeuralNetwork(model_type=ModelType.RBF, n_centers=20)
+net.train(X, y)
+```
+
+---
+
 ## ModelType
 
 Enumeración para seleccionar el tipo de modelo.
@@ -396,6 +500,133 @@ net_bp = NeuralNetwork(model_type=ModelType.BACKPROP, hidden_layers=[10])
 | `'multiquadratic'` | Multicuadrática: sqrt(1 + (r/sigma)^2) |
 | `'inverse_multiquadratic'` | Multicuadrática Inversa: 1 / sqrt(1 + (r/sigma)^2) |
 | `'thin_plate'` | Thin Plate Spline: r^2 * ln(r) |
+
+---
+
+## Dataclasses de Resultados
+
+La API usa dataclasses de Python para proporcionar tipado fuerte y autocompletado en IDEs para los resultados de entrenamiento y evaluación.
+
+### TrainingResult
+
+Resultado del entrenamiento con tipado fuerte.
+
+**Campos:**
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `training_time` | `float` | Tiempo de entrenamiento en segundos |
+| `final_error` | `float` | Error final de entrenamiento |
+| `epochs` | `int` | Número de épocas ejecutadas |
+| `error_history` | `List[float]` | Historial de errores por época |
+| `converged` | `bool` | Si el modelo convergió |
+| `metadata` | `Dict[str, Any]` | Metadatos adicionales |
+
+**Métodos:**
+- `to_dict()`: Convierte a diccionario para compatibilidad con código existente
+
+**Ejemplo:**
+```python
+result = net.train(X, y)
+print(f"Tiempo: {result.training_time}")
+print(f"Error: {result.final_error}")
+print(f"Épocas: {result.epochs}")
+
+# Convertir a diccionario si es necesario
+result_dict = result.to_dict()
+```
+
+---
+
+### EvaluationResult
+
+Resultado de la evaluación con tipado fuerte.
+
+**Campos:**
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `mse` | `float` | Error cuadrático medio |
+| `mae` | `float` | Error absoluto medio |
+| `rmse` | `float` | Raíz del error cuadrático medio |
+| `r2` | `float` | Coeficiente R² |
+| `accuracy` | `float` | Precisión (para clasificación) |
+| `predictions` | `Optional[np.ndarray]` | Predicciones (si `detailed=True`) |
+| `metadata` | `Dict[str, Any]` | Metadatos adicionales |
+
+**Métodos:**
+- `to_dict()`: Convierte a diccionario para compatibilidad con código existente
+
+**Ejemplo:**
+```python
+metrics = net.evaluate(X_test, y_test)
+print(f"MSE: {metrics.mse}")
+print(f"R²: {metrics.r2}")
+print(f"MAE: {metrics.mae}")
+
+# Obtener predicciones detalladas
+metrics_detailed = net.evaluate(X_test, y_test, detailed=True)
+print(f"Predicciones: {metrics_detailed.predictions}")
+```
+
+---
+
+### LayerWeights
+
+Pesos y bias de una capa específica con tipado fuerte.
+
+**Campos:**
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `layer_index` | `int` | Índice de la capa |
+| `layer_type` | `str` | Tipo de capa (`'hidden'` o `'output'`) |
+| `input_size` | `int` | Tamaño de entrada |
+| `output_size` | `int` | Tamaño de salida |
+| `weights` | `np.ndarray` | Matriz de pesos (copia) |
+| `bias` | `Optional[np.ndarray]` | Vector de bias (copia) |
+| `activation` | `str` | Función de activación |
+| `use_bias` | `bool` | Si usa bias |
+
+**Métodos:**
+- `to_dict()`: Convierte a diccionario para compatibilidad con código existente
+
+**Ejemplo:**
+```python
+layer = net.get_layer_weights(0)
+print(f"Pesos: {layer.weights.shape}")
+print(f"Bias: {layer.bias}")
+print(f"Activación: {layer.activation}")
+```
+
+---
+
+### ModelSummary
+
+Resumen completo del modelo con tipado fuerte.
+
+**Campos:**
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `model_type` | `str` | Tipo de modelo |
+| `is_fitted` | `bool` | Si el modelo está entrenado |
+| `configuration` | `Dict[str, Any]` | Configuración del modelo |
+| `architecture` | `Optional[Dict[str, Any]]` | Arquitectura (si está entrenado) |
+| `n_parameters` | `Optional[int]` | Número de parámetros (si está entrenado) |
+
+**Métodos:**
+- `to_dict()`: Convierte a diccionario para compatibilidad con código existente
+
+**Ejemplo:**
+```python
+summary = net.summary()
+print(f"Tipo: {summary.model_type}")
+print(f"Entrenado: {summary.is_fitted}")
+if summary.is_fitted:
+    print(f"Parámetros: {summary.n_parameters}")
+    print(f"Arquitectura: {summary.architecture}")
+```
 
 ---
 
