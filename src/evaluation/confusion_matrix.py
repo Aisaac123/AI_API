@@ -14,40 +14,43 @@ from dataclasses import dataclass
 class ConfusionMatrixResult:
     """
     Resultado de cálculo de matriz de confusión con métricas derivadas.
-    
+
     Este dataclass encapsula la matriz de confusión y todas las métricas
     derivadas como precision, recall, F1-score, etc.
     """
     matrix: np.ndarray
     """Matriz de confusión con valores absolutos (n_classes, n_classes)"""
-    
+
     matrix_normalized_row: np.ndarray
     """Matriz normalizada por fila (recall por clase)"""
-    
+
     matrix_normalized_col: np.ndarray
     """Matriz normalizada por columna (precision por clase)"""
-    
+
     precision: Dict[str, float]
     """Precision por clase: TP / (TP + FP)"""
-    
+
     recall: Dict[str, float]
     """Recall por clase: TP / (TP + FN)"""
-    
+
+    specificity: Dict[str, float]
+    """Especificidad por clase: TN / (TN + FP)"""
+
     f1_score: Dict[str, float]
     """F1-score por clase: 2 * (precision * recall) / (precision + recall)"""
-    
+
     support: Dict[str, int]
     """Número de muestras reales por clase"""
-    
+
     accuracy: float
     """Accuracy global: (TP + TN) / total"""
-    
+
     macro_avg: Dict[str, float]
     """Promedio macro de precision, recall, f1"""
-    
+
     weighted_avg: Dict[str, float]
     """Promedio ponderado por support de precision, recall, f1"""
-    
+
     n_classes: int
     """Número de clases"""
 
@@ -119,21 +122,22 @@ class ConfusionMatrixCalculator:
         matrix_normalized_col = self._normalize_by_column(matrix)
         
         # Calcular métricas por clase
-        precision, recall, f1, support = self._compute_class_metrics(matrix, labels)
-        
+        precision, recall, specificity, f1, support = self._compute_class_metrics(matrix, labels)
+
         # Calcular accuracy global
         accuracy = np.trace(matrix) / np.sum(matrix)
-        
+
         # Calcular promedios
-        macro_avg = self._compute_macro_avg(precision, recall, f1)
-        weighted_avg = self._compute_weighted_avg(precision, recall, f1, support)
-        
+        macro_avg = self._compute_macro_avg(precision, recall, specificity, f1)
+        weighted_avg = self._compute_weighted_avg(precision, recall, specificity, f1, support)
+
         return ConfusionMatrixResult(
             matrix=matrix,
             matrix_normalized_row=matrix_normalized_row,
             matrix_normalized_col=matrix_normalized_col,
             precision=precision,
             recall=recall,
+            specificity=specificity,
             f1_score=f1,
             support=support,
             accuracy=accuracy,
@@ -245,42 +249,49 @@ class ConfusionMatrixCalculator:
         self,
         matrix: np.ndarray,
         labels: np.ndarray
-    ) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float], Dict[str, int]]:
+    ) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float], Dict[str, float], Dict[str, int]]:
         """
-        Calcular métricas por clase: precision, recall, F1-score, support.
-        
+        Calcular métricas por clase: precision, recall, specificity, F1-score, support.
+
         Args:
             matrix: Matriz de confusión
             labels: Etiquetas de clases
-            
+
         Returns:
-            Tupla con (precision, recall, f1_score, support) como diccionarios
+            Tupla con (precision, recall, specificity, f1_score, support) como diccionarios
         """
         precision = {}
         recall = {}
+        specificity = {}
         f1_score = {}
         support = {}
-        
+
         for idx, label in enumerate(labels):
             tp = matrix[idx, idx]  # True Positives
             fp = matrix[:, idx].sum() - tp  # False Positives
             fn = matrix[idx, :].sum() - tp  # False Negatives
             tn = matrix.sum() - tp - fp - fn  # True Negatives
-            
+
             support[str(label)] = int(matrix[idx, :].sum())
-            
+
             # Precision: TP / (TP + FP)
             if tp + fp > 0:
                 precision[str(label)] = tp / (tp + fp)
             else:
                 precision[str(label)] = 0.0
-            
+
             # Recall: TP / (TP + FN)
             if tp + fn > 0:
                 recall[str(label)] = tp / (tp + fn)
             else:
                 recall[str(label)] = 0.0
-            
+
+            # Specificity: TN / (TN + FP)
+            if tn + fp > 0:
+                specificity[str(label)] = tn / (tn + fp)
+            else:
+                specificity[str(label)] = 0.0
+
             # F1-score: 2 * (precision * recall) / (precision + recall)
             if precision[str(label)] + recall[str(label)] > 0:
                 f1_score[str(label)] = (
@@ -289,29 +300,32 @@ class ConfusionMatrixCalculator:
                 )
             else:
                 f1_score[str(label)] = 0.0
-        
-        return precision, recall, f1_score, support
+
+        return precision, recall, specificity, f1_score, support
     
     def _compute_macro_avg(
         self,
         precision: Dict[str, float],
         recall: Dict[str, float],
+        specificity: Dict[str, float],
         f1: Dict[str, float]
     ) -> Dict[str, float]:
         """
         Calcular promedio macro de métricas.
-        
+
         Args:
             precision: Diccionario de precision por clase
             recall: Diccionario de recall por clase
+            specificity: Diccionario de specificity por clase
             f1: Diccionario de F1-score por clase
-            
+
         Returns:
             Diccionario con promedios macro
         """
         return {
             'precision': np.mean(list(precision.values())),
             'recall': np.mean(list(recall.values())),
+            'specificity': np.mean(list(specificity.values())),
             'f1-score': np.mean(list(f1.values()))
         }
     
@@ -319,40 +333,47 @@ class ConfusionMatrixCalculator:
         self,
         precision: Dict[str, float],
         recall: Dict[str, float],
+        specificity: Dict[str, float],
         f1: Dict[str, float],
         support: Dict[str, int]
     ) -> Dict[str, float]:
         """
         Calcular promedio ponderado por support de métricas.
-        
+
         Args:
             precision: Diccionario de precision por clase
             recall: Diccionario de recall por clase
+            specificity: Diccionario de specificity por clase
             f1: Diccionario de F1-score por clase
             support: Diccionario de support por clase
-            
+
         Returns:
             Diccionario con promedios ponderados
         """
         total_support = sum(support.values())
-        
+
         if total_support == 0:
-            return {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0}
-        
+            return {'precision': 0.0, 'recall': 0.0, 'specificity': 0.0, 'f1-score': 0.0}
+
         weighted_precision = sum(
             precision[label] * support[label] for label in precision
         ) / total_support
-        
+
         weighted_recall = sum(
             recall[label] * support[label] for label in recall
         ) / total_support
-        
+
+        weighted_specificity = sum(
+            specificity[label] * support[label] for label in specificity
+        ) / total_support
+
         weighted_f1 = sum(
             f1[label] * support[label] for label in f1
         ) / total_support
-        
+
         return {
             'precision': weighted_precision,
             'recall': weighted_recall,
+            'specificity': weighted_specificity,
             'f1-score': weighted_f1
         }

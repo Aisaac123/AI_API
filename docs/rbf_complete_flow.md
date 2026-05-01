@@ -11,6 +11,7 @@ Este documento describe el flujo completo de implementación y uso de redes RBF 
 5. [Cálculo de la Matriz de Pesos](#5-cálculo-de-la-matriz-de-pesos)
 6. [Evaluación del Modelo (Simulación)](#6-evaluación-del-modelo-simulación)
 7. [Métricas de Evaluación / Matriz de Confusión](#7-métricas-de-evaluación--matriz-de-confusión)
+8. [Scripts de Entrenamiento con Flags](#8-scripts-de-entrenamiento-con-flags)
 
 ---
 
@@ -1018,6 +1019,111 @@ print(f"Accuracy: {confusion.accuracy}")
 
 ---
 
+## 8. Scripts de Entrenamiento con Flags
+
+### Descripción
+
+El proyecto incluye scripts de entrenamiento para datasets JSON con flags de línea de comandos para controlar el modo de ejecución y la randomización del particionamiento.
+
+### Scripts Disponibles
+
+- `scripts/train_dataset_rbf_1.py` - Para `dataset_rbf_1.json`
+- `scripts/train_dataset_rbf_2.py` - Para `dataset_rbf_2.json`
+- `scripts/train_dataset_rbf_3.py` - Para `dataset_rbf_3.json`
+
+### Flags Disponibles
+
+#### `--mode`
+
+Controla qué evaluaciones ejecutar después del entrenamiento.
+
+| Valor | Descripción |
+|-------|-------------|
+| `train` | Solo entrena el modelo (sin evaluación) |
+| `val` | Entrena y evalúa en validation |
+| `test` | Entrena y evalúa en test |
+| `all` (default) | Entrena y evalúa en validation y test |
+
+#### `--random`
+
+Controla si el particionamiento 70/15/15 es random o reproducible.
+
+| Presente | Comportamiento |
+|----------|---------------|
+| No (default) | Usa semilla 42 (reproducible) |
+| Sí | Randomiza sin semilla (cada ejecución diferente) |
+
+### Ejemplos de Uso
+
+```bash
+# Ejecutar todo (entrenar + validation + test)
+python scripts/train_dataset_rbf_1.py
+
+# Solo entrenar
+python scripts/train_dataset_rbf_1.py --mode train
+
+# Entrenar + validar
+python scripts/train_dataset_rbf_1.py --mode val
+
+# Entrenar + test
+python scripts/train_dataset_rbf_1.py --mode test
+
+# Randomizar particionamiento
+python scripts/train_dataset_rbf_1.py --random
+
+# Combinar flags
+python scripts/train_dataset_rbf_1.py --mode val --random
+```
+
+### Flujo de los Scripts
+
+1. **Cargar datos** desde JSON
+2. **Limpiar datos** (manejar valores nulos)
+3. **Particionar** 70/15/15 (train/validation/test)
+4. **Entrenar** modelo RBF
+5. **Evaluar** según modo (validation/test/all)
+
+### Funciones Auxiliares
+
+**`evaluate_model(net, X, y, label)`**
+- Función separada para mantener `main()` limpio
+- Calcula MSE, R² y matriz de confusión
+- Muestra todas las métricas de forma organizada
+
+### Código de Ejemplo
+
+```python
+def main():
+    parser = argparse.ArgumentParser(description='Entrenar modelo RBF con dataset')
+    parser.add_argument('--mode', type=str, default='all',
+                        choices=['train', 'val', 'test', 'all'],
+                        help='Modo de ejecución: train (solo entrenar), val (entrenar+validar), test (entrenar+test), all (todo)')
+    parser.add_argument('--random', action='store_true',
+                        help='Randomizar particionamiento 70/15/15')
+    args = parser.parse_args()
+
+    # Randomizar o no según flag
+    random_state = None if args.random else 42
+
+    # Particionar datos
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(
+        X, y, train_ratio=0.70, val_ratio=0.15, test_ratio=0.15, random_state=random_state
+    )
+
+    # Entrenar
+    net = NeuralNetwork(model_type=ModelType.RBF, ...)
+    result = net.train(X_train, y_train, verbose=True)
+
+    # Evaluar según modo
+    if args.mode in ['val', 'all']:
+        evaluate_model(net, X_val, y_val, "Validation")
+
+    if args.mode in ['test', 'all']:
+        evaluate_model(net, X_test, y_test, "Test")
+```
+
+---
+
 ## Archivos Principales
 
 | Archivo | Descripción |
@@ -1032,3 +1138,6 @@ print(f"Accuracy: {confusion.accuracy}")
 | `src/evaluation/evaluator.py` | Evaluación de modelos (MSE, RMSE, etc.) |
 | `src/evaluation/confusion_matrix.py` | Matriz de confusión y métricas |
 | `api/neural_network.py` | API pública para usuarios |
+| `scripts/train_dataset_rbf_1.py` | Script de entrenamiento para dataset 1 |
+| `scripts/train_dataset_rbf_2.py` | Script de entrenamiento para dataset 2 |
+| `scripts/train_dataset_rbf_3.py` | Script de entrenamiento para dataset 3 |
