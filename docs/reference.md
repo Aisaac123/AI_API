@@ -500,7 +500,8 @@ net_bp = NeuralNetwork(model_type=ModelType.BACKPROP, hidden_layers=[10])
 | `'gaussian'` | Gaussiana: exp(-(r/sigma)^2) |
 | `'multiquadratic'` | Multicuadrática: sqrt(1 + (r/sigma)^2) |
 | `'inverse_multiquadratic'` | Multicuadrática Inversa: 1 / sqrt(1 + (r/sigma)^2) |
-| `'thin_plate'` | Thin Plate Spline: r^2 * ln(r) |
+| `'thin_plate'` | Thin Plate Spline (ln): r^2 * ln(r) (forma original) |
+| `'thin_plate_log10'` | Thin Plate Spline (log10): r^2 * log10(r) (variante) |
 
 ---
 

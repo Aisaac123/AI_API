@@ -33,7 +33,7 @@ def main():
     print("Example 1: RBF with different activation functions")
     print("-" * 60)
     
-    activations = ['gaussian', 'multiquadratic', 'inverse_multiquadratic', 'thin_plate']
+    activations = ['gaussian', 'multiquadratic', 'inverse_multiquadratic', 'thin_plate', 'thin_plate_log10']
     
     for activation in activations:
         net = NeuralNetwork(

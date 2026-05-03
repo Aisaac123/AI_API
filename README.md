@@ -237,7 +237,7 @@ NeuralNetwork(model_type, hidden_layers=None, n_centers=20, sigma=0.5,
   - Valores más pequeños = influencia más localizada
 
 - **activation_rbf** (str): Tipo de función de activación RBF
-  - Opciones: `'gaussian'`, `'multiquadratic'`, `'inverse_multiquadratic'`, `'thin_plate'`
+  - Opciones: `'gaussian'`, `'multiquadratic'`, `'inverse_multiquadratic'`, `'thin_plate'` (ln), `'thin_plate_log10'`
   - Por defecto: `'gaussian'`
 
 - **activation_backprop** (str): Tipo de función de activación para retropropagación

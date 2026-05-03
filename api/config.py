@@ -24,7 +24,7 @@ class NeuralNetworkConfig:
     """Parámetro de ancho de RBF"""
     
     activation_rbf: str = 'gaussian'
-    """Función de activación RBF: 'gaussian', 'multiquadratic', 'inverse_multiquadratic', 'thin_plate'"""
+    """Función de activación RBF: 'gaussian', 'multiquadratic', 'inverse_multiquadratic', 'thin_plate' (ln), 'thin_plate_log10'"""
     
     activation_backprop: str = 'sigmoid'
     """Función de activación backpropagation por defecto: 'sigmoid', 'logsig', 'tanh', 'tansig', 'relu', 'linear', 'purelin', 'leaky_relu'"""

@@ -107,9 +107,10 @@ class InverseMultiquadraticActivation(ActivationFunction):
 
 class ThinPlateSplineActivation(ActivationFunction):
     """
-    Función de activación Thin Plate Spline (RBF).
+    Función de activación Thin Plate Spline (RBF) - Variante con logaritmo natural.
     
     Fórmula: phi(r) = r^2 * ln(r), con phi(0) = 0
+    Usa logaritmo natural (np.log), que es la forma original de Thin Plate Spline.
     """
 
     def compute(self, distances: np.ndarray, sigma: float = 1.0) -> np.ndarray:
@@ -123,7 +124,29 @@ class ThinPlateSplineActivation(ActivationFunction):
         raise NotImplementedError("Derivada no requerida para funciones RBF")
 
     def __str__(self) -> str:
-        return "Thin Plate Spline"
+        return "Thin Plate Spline (ln)"
+
+
+class ThinPlateSplineLog10Activation(ActivationFunction):
+    """
+    Función de activación Thin Plate Spline (RBF) - Variante con logaritmo base 10.
+    
+    Fórmula: phi(r) = r^2 * log10(r), con phi(0) = 0
+    Usa logaritmo base 10 (np.log10), variante alternativa de Thin Plate Spline.
+    """
+
+    def compute(self, distances: np.ndarray, sigma: float = 1.0) -> np.ndarray:
+        scaled_distances = distances / sigma
+        result = np.zeros_like(scaled_distances)
+        mask = scaled_distances > 0
+        result[mask] = scaled_distances[mask] ** 2 * np.log10(scaled_distances[mask])
+        return result
+
+    def derivative(self, x: np.ndarray, sigma: float = 1.0) -> np.ndarray:
+        raise NotImplementedError("Derivada no requerida para funciones RBF")
+
+    def __str__(self) -> str:
+        return "Thin Plate Spline (log10)"
 
 
 # Funciones de activación para Backpropagation (estilo MATLAB)

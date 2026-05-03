@@ -10,7 +10,8 @@ from src.core.activation import (
     GaussianActivation,
     MultiquadraticActivation,
     InverseMultiquadraticActivation,
-    ThinPlateSplineActivation
+    ThinPlateSplineActivation,
+    ThinPlateSplineLog10Activation
 )
 from .config import NeuralNetworkConfig
 from .core.base import ModelFactory as BaseModelFactory
@@ -63,7 +64,8 @@ class RBFModelFactory(BaseModelFactory):
             'gaussian': GaussianActivation,
             'multiquadratic': MultiquadraticActivation,
             'inverse_multiquadratic': InverseMultiquadraticActivation,
-            'thin_plate': ThinPlateSplineActivation
+            'thin_plate': ThinPlateSplineActivation,
+            'thin_plate_log10': ThinPlateSplineLog10Activation
         }
         activation_class = activations.get(
             activation_name.lower(),

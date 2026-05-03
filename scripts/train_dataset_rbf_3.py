@@ -357,7 +357,7 @@ def main():
         model_type=ModelType.RBF,
         n_centers=min(50, X_train.shape[0] // 10),
         sigma=1.0,
-        activation_rbf='gaussian',
+        activation_rbf='thin_plate',  # Thin Plate Spline con logaritmo natural (ln)
         regularization=0.01,
         random_state=42
     )

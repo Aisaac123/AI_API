@@ -59,7 +59,7 @@ class NeuralNetwork:
             hidden_layers: Lista de tamaños de capas ocultas (para backpropagation)
             n_centers: Número de centros RBF (para RBF)
             sigma: Parámetro de ancho de RBF
-            activation_rbf: Función de activación RBF ('gaussian', 'multiquadratic', 'inverse_multiquadratic', 'thin_plate')
+            activation_rbf: Función de activación RBF ('gaussian', 'multiquadratic', 'inverse_multiquadratic', 'thin_plate', 'thin_plate_log10')
             activation_backprop: Función de activación backpropagation ('sigmoid', 'tanh', 'relu')
             learning_rate: Tasa de aprendizaje para backpropagation
             epochs: Número de épocas de entrenamiento (para backpropagation)

@@ -90,10 +90,16 @@ phi(d, sigma) = sqrt(1 + (d/sigma)^2)
 phi(d, sigma) = 1 / sqrt(1 + (d/sigma)^2)
 ```
 
-**Thin Plate Spline:** Usada para interpolación suave. Combina el cuadrado de la distancia con un logaritmo.
+**Thin Plate Spline (ln):** Usada para interpolación suave. Combina el cuadrado de la distancia con logaritmo natural (forma original).
 
 ```
 phi(d) = d^2 * ln(d)  (con phi(0) = 0)
+```
+
+**Thin Plate Spline (log10):** Variante con logaritmo base 10.
+
+```
+phi(d) = d^2 * log10(d)  (con phi(0) = 0)
 ```
 
 **¿Qué es sigma?** Es el parámetro de ancho que controla qué tan "ancha" es la función. Un sigma grande hace que la neurona responda a puntos más lejanos, un sigma pequeño hace que solo responda a puntos muy cercanos.

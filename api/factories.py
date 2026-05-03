@@ -11,7 +11,8 @@ from src.core.activation import (
     GaussianActivation,
     MultiquadraticActivation,
     InverseMultiquadraticActivation,
-    ThinPlateSplineActivation
+    ThinPlateSplineActivation,
+    ThinPlateSplineLog10Activation
 )
 from .config import NeuralNetworkConfig
 from .core.model_type import ModelType
@@ -145,7 +146,8 @@ class ActivationFactory:
         'gaussian': GaussianActivation,
         'multiquadratic': MultiquadraticActivation,
         'inverse_multiquadratic': InverseMultiquadraticActivation,
-        'thin_plate': ThinPlateSplineActivation
+        'thin_plate': ThinPlateSplineActivation,
+        'thin_plate_log10': ThinPlateSplineLog10Activation
     }
     
     @classmethod
