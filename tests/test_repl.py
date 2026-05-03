@@ -37,6 +37,7 @@ def test_repl_context_loading():
         'MultiquadraticActivation',
         'InverseMultiquadraticActivation',
         'ThinPlateSplineActivation',
+        'ThinPlateSplineLog10Activation',
         'RBFTrainer',
         'BackpropTrainer',
         'KMeansInitializer',

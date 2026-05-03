@@ -12,7 +12,8 @@ from .activation import (
     GaussianActivation,
     MultiquadraticActivation,
     InverseMultiquadraticActivation,
-    ThinPlateSplineActivation
+    ThinPlateSplineActivation,
+    ThinPlateSplineLog10Activation
 )
 
 # Distance functions
@@ -43,6 +44,7 @@ __all__ = [
     'MultiquadraticActivation',
     'InverseMultiquadraticActivation',
     'ThinPlateSplineActivation',
+    'ThinPlateSplineLog10Activation',
     
     # Distance functions
     'euclidean_distance',

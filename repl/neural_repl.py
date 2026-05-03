@@ -43,7 +43,8 @@ from src.core import (
     GaussianActivation,
     MultiquadraticActivation,
     InverseMultiquadraticActivation,
-    ThinPlateSplineActivation
+    ThinPlateSplineActivation,
+    ThinPlateSplineLog10Activation
 )
 
 # Importar entrenadores e inicializadores
