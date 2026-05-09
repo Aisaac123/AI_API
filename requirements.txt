@@ -1,5 +1,7 @@
 numpy
 matplotlib
 seaborn
+scikit-learn
 ipython
+jupyter
 pytest
